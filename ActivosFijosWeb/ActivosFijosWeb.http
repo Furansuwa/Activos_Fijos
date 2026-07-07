@@ -1,0 +1,6 @@
+@ActivosFijosWeb_HostAddress = http://localhost:5258
+
+GET {{ActivosFijosWeb_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

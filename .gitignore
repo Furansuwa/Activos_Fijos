@@ -1,0 +1,15 @@
+'EOF'
+# .NET
+bin/
+obj/
+*.user
+
+# Base de datos local (no subir datos de prueba)
+*.db
+*.db-shm
+*.db-wal
+
+# Editor
+.vs/
+.vscode/
+EOF

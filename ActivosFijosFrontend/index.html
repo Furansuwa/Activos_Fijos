@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Activos Fijos</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        .nav-link { cursor: pointer; font-weight: 500; color: #475569; }
+        .nav-pills .nav-link.active { background-color: #005088; color: white; }
+        .card { border: none; border-radius: 12px; }
+        .bg-unape { background-color: #005088 !important; }
+        .table { background: white; border-radius: 12px; overflow: hidden; }
+        .form-label { font-weight: 600; font-size: 0.85rem; color: #475569; }
+        .crud-section { animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body class="bg-light">
+
+<nav class="navbar navbar-dark bg-unape shadow-sm mb-4">
+    <div class="container">
+        <span class="navbar-brand"><i class="fa-solid fa-building-columns me-2"></i> SGAF - Gestión de Activos Fijos</span>
+    </div>
+</nav>
+
+<div class="container">
+    <ul class="nav nav-pills nav-fill mb-4 shadow-sm bg-white p-2 rounded-pill" id="pills-tab">
+        <li class="nav-item"><a class="nav-link active" id="tab-deptos" onclick="switchTab('deptos', this)">Departamentos</a></li>
+        <li class="nav-item"><a class="nav-link" id="tab-tipos" onclick="switchTab('tipos', this)">Tipos Activos</a></li>
+        <li class="nav-item"><a class="nav-link" id="tab-empleados" onclick="switchTab('empleados', this)">Empleados</a></li>
+        <li class="nav-item"><a class="nav-link" id="tab-activos" onclick="switchTab('activos', this)">Activos Fijos</a></li>
+        <li class="nav-item"><a class="nav-link" id="tab-calculo" onclick="switchTab('calculo', this)">Cálculo Depreciación</a></li>
+    </ul>
+
+    <div id="section-deptos" class="crud-section">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card shadow-sm p-3">
+                    <h5 class="text-primary mb-3"><i class="fa-solid fa-folder-plus me-2"></i>Departamento</h5>
+                    <form onsubmit="guardarDepto(event)">
+                        <input type="hidden" id="depto-id">
+                        <div class="mb-2">
+                            <label class="form-label">Descripción</label>
+                            <input type="text" id="depto-desc" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Estado</label>
+                            <select id="depto-estado" class="form-select">
+                                <option value="true">Activo</option>
+                                <option value="false">Inactivo</option>
+                            </select>
+                        </div>
+                        <button id="btn-depto" class="btn btn-success w-100">Guardar</button>
+                        <button type="button" id="btn-cancel-depto" class="btn btn-outline-secondary w-100 mt-2 d-none" onclick="resetFormDepto()">Cancelar</button>
+                    </form>
+                </div>
+            </div>
+            <div class="col-md-8">
+                <table class="table shadow-sm table-hover">
+                    <thead class="table-dark"><tr><th>ID</th><th>Descripción</th><th>Estado</th><th>Acciones</th></tr></thead>
+                    <tbody id="tabla-deptos"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="section-tipos" class="crud-section d-none">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card shadow-sm p-3">
+                    <h5 class="text-primary mb-3"><i class="fa-solid fa-tags me-2"></i>Tipo de Activo</h5>
+                    <form onsubmit="guardarTipo(event)">
+                        <input type="hidden" id="tipo-id">
+                        <label class="form-label">Descripción (Ej: Mobiliario)</label>
+                        <input type="text" id="tipo-desc" class="form-control mb-2" required>
+                        
+                        <label class="form-label">Cta. Contable Compra</label>
+                        <input type="text" id="tipo-cta-compra" class="form-control mb-2" placeholder="Ej: 1201-01" required>
+                        
+                        <label class="form-label">Cta. Contable Depreciación</label>
+                        <input type="text" id="tipo-cta-dep" class="form-control mb-2" placeholder="Ej: 6104-05" required>
+
+                        <label class="form-label">Vida Útil (meses)</label>
+                        <input type="number" id="tipo-vida-util" class="form-control mb-3" placeholder="Ej: 60" min="1" value="48" required>
+                        
+                        <button id="btn-tipo" class="btn btn-success w-100">Guardar</button>
+                        <button type="button" id="btn-cancel-tipo" class="btn btn-outline-secondary w-100 mt-2 d-none" onclick="resetFormTipo()">Cancelar</button>
+                    </form>
+                </div>
+            </div>
+            <div class="col-md-8">
+                <table class="table shadow-sm table-hover">
+                    <!-- Columnas corregidas para separar cuentas -->
+                    <thead class="table-dark"><tr><th>ID</th><th>Descripción</th><th>Cta. Compra</th><th>Cta. Deprec.</th><th>Vida Útil</th><th>Acciones</th></tr></thead>
+                    <tbody id="tabla-tipos"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="section-empleados" class="crud-section d-none">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card shadow-sm p-3">
+                    <h5 class="text-primary mb-3"><i class="fa-solid fa-user-tie me-2"></i>Empleado</h5>
+                    <form onsubmit="guardarEmpleado(event)">
+                        <input type="hidden" id="emp-id">
+                        <label class="form-label">Nombre Completo</label>
+                        <input type="text" id="emp-nombre" class="form-control mb-2" required>
+                        
+                        <label class="form-label">Cédula (Sin guiones)</label>
+                        <input type="text" id="emp-cedula" class="form-control mb-2" required>
+                        
+                        <label class="form-label">Departamento</label>
+                        <select id="emp-depto" class="form-select mb-2" required></select>
+                        
+                        <div class="row mb-2">
+                            <div class="col-6">
+                                <label class="form-label">Persona</label>
+                                <select id="emp-tipo" class="form-select">
+                                    <option value="Fisica">Física</option>
+                                    <option value="Juridica">Jurídica</option>
+                                </select>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">Estado</label>
+                                <select id="emp-estado" class="form-select">
+                                    <option value="true">Activo</option>
+                                    <option value="false">Inactivo</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <label class="form-label">Fecha de Ingreso</label>
+                        <input type="date" id="emp-fecha" class="form-control mb-3" required>
+
+                        <button id="btn-emp" class="btn btn-success w-100">Guardar Empleado</button>
+                        <button type="button" id="btn-cancel-emp" class="btn btn-outline-secondary w-100 mt-2 d-none" onclick="resetFormEmp()">Cancelar</button>
+                    </form>
+                </div>
+            </div>
+            <div class="col-md-8">
+                <table class="table shadow-sm table-hover">
+                    <thead class="table-dark"><tr><th>ID</th><th>Nombre</th><th>Cédula</th><th>Depto</th><th>Estado</th><th>Acciones</th></tr></thead>
+                    <tbody id="tabla-empleados"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="section-activos" class="crud-section d-none">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card shadow-sm p-3">
+                    <h5 class="text-primary mb-3"><i class="fa-solid fa-laptop me-2"></i>Activo Fijo</h5>
+                    <form onsubmit="guardarActivo(event)">
+                        <input type="hidden" id="act-id">
+                        <label class="form-label">Descripción del Activo</label>
+                        <input type="text" id="act-desc" class="form-control mb-2" required>
+                        
+                        <div class="row mb-2">
+                            <div class="col-6">
+                                <label class="form-label">Departamento</label>
+                                <select id="act-depto" class="form-select" required></select>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">Tipo Activo</label>
+                                <select id="act-tipo" class="form-select" required></select>
+                            </div>
+                        </div>
+
+                        <label class="form-label">Valor Compra (RD$)</label>
+                        <input type="number" id="act-valor" class="form-control mb-2" step="0.01" required>
+                        
+                        <label class="form-label">Fecha de Registro</label>
+                        <input type="date" id="act-fecha" class="form-control mb-3" required>
+
+                        <button id="btn-act" class="btn btn-success w-100">Registrar Activo</button>
+                        <button type="button" id="btn-cancel-act" class="btn btn-outline-secondary w-100 mt-2 d-none" onclick="resetFormAct()">Cancelar</button>
+                    </form>
+                </div>
+            </div>
+            <div class="col-md-8">
+                <table class="table shadow-sm table-hover">
+                    <thead class="table-dark"><tr><th>ID</th><th>Descripción</th><th>Valor Compra</th><th>Depreciación Acum.</th><th>Acciones</th></tr></thead>
+                    <tbody id="tabla-activos"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="section-calculo" class="crud-section d-none">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card shadow-sm p-3">
+                    <h5 class="text-primary mb-3"><i class="fa-solid fa-calculator me-2"></i>Proceso Mensual</h5>
+                    <form onsubmit="ejecutarDepreciacion(event)">
+                        <div class="mb-3">
+                            <label class="form-label">Activo a depreciar</label>
+                            <select id="dep-activo-id" class="form-select">
+                                <option value="0">-- Todos los activos --</option>
+                            </select>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-6">
+                                <label class="form-label">Año</label>
+                                <input type="number" id="dep-año" class="form-control" value="2024" required>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">Mes</label>
+                                <select id="dep-mes" class="form-select">
+                                    <option value="1">Enero</option><option value="2">Febrero</option>
+                                    <option value="3">Marzo</option><option value="4">Abril</option>
+                                    <option value="5">Mayo</option><option value="6">Junio</option>
+                                    <option value="7">Julio</option><option value="8">Agosto</option>
+                                    <option value="9">Septiembre</option><option value="10">Octubre</option>
+                                    <option value="11">Noviembre</option><option value="12">Diciembre</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="dep-todo-anio" onchange="document.getElementById('dep-mes').disabled = this.checked;">
+                            <label class="form-check-label" for="dep-todo-anio">
+                                Procesar el año completo (12 meses)
+                            </label>
+                        </div>
+                        <button class="btn btn-primary w-100 btn-lg shadow"><i class="fa-solid fa-play me-2"></i>Ejecutar Proceso</button>
+                    </form>
+                </div>
+            </div>
+            <div class="col-md-8">
+                <div class="d-flex justify-content-between mb-2">
+                    <h6 class="fw-bold">Historial de Cálculos</h6>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="cargarCalculos()"><i class="fa-solid fa-rotate-right"></i> Refrescar</button>
+                </div>
+                <table class="table shadow-sm table-hover">
+                    <thead class="table-dark"><tr><th>Periodo</th><th>Activo</th><th>Monto Cuota</th><th>Acumulada Final</th></tr></thead>
+                    <tbody id="tabla-calculos"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const BASE_URL = "http://localhost:5258/api"; 
+
+    function switchTab(tabId, element) {
+        document.querySelectorAll('.crud-section').forEach(s => s.classList.add('d-none'));
+        document.querySelectorAll('.nav-link').forEach(n => n.classList.remove('active'));
+        document.getElementById('section-' + tabId).classList.remove('d-none');
+        element.classList.add('active');
+
+        if(tabId === 'deptos') cargarDeptos();
+        if(tabId === 'tipos') cargarTipos();
+        if(tabId === 'empleados') { 
+            cargarDeptosSelect('emp-depto'); 
+            cargarEmpleados(); 
+            if(!document.getElementById('emp-id').value) document.getElementById('emp-fecha').value = new Date().toISOString().split('T')[0];
+        }
+        if(tabId === 'activos') { 
+            cargarDeptosSelect('act-depto'); 
+            cargarTiposSelect('act-tipo'); 
+            cargarActivos(); 
+            if(!document.getElementById('act-id').value) document.getElementById('act-fecha').value = new Date().toISOString().split('T')[0];
+        }
+        if(tabId === 'calculo') {
+            cargarCalculos();
+            cargarActivosEnCalculo();
+        }
+    }
+
+    function validaCedulaJS(cedula) {
+        let vnTotal = 0;
+        let vcCedula = cedula.replace(/-/g, "").replace(/\s/g, "").trim();
+        if (!/^\d{11}$/.test(vcCedula)) return false;
+        let digitoMult = [1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1];
+        for (let i = 0; i < 11; i++) {
+            let vCalculo = parseInt(vcCedula[i]) * digitoMult[i];
+            if (vCalculo < 10) vnTotal += vCalculo;
+            else {
+                let s = vCalculo.toString();
+                vnTotal += parseInt(s[0]) + parseInt(s[1]);
+            }
+        }
+        return vnTotal % 10 === 0;
+    }
+
+    function validaRNCJS(rnc) {
+        let vcRnc = rnc.replace(/-/g, "").replace(/\s/g, "").trim();
+        return /^\d{9}$/.test(vcRnc);
+    }
+
+    async function cargarDeptos() {
+        const res = await fetch(`${BASE_URL}/Departamentos`);
+        const data = await res.json();
+        document.getElementById('tabla-deptos').innerHTML = data.map(d => `
+            <tr>
+                <td>${d.id}</td>
+                <td>${d.descripcion}</td>
+                <td><span class="badge ${d.estado?'bg-success':'bg-danger'}">${d.estado?'Activo':'Inactivo'}</span></td>
+                <td>
+                    <button class="btn btn-warning btn-sm" title="Editar" onclick='editDepto(${JSON.stringify(d)})'><i class="fa-solid fa-pen"></i></button>
+                    <button class="btn btn-danger btn-sm" title="Eliminar" onclick="eliminar('Departamentos', ${d.id}, cargarDeptos)"><i class="fa-solid fa-trash"></i></button>
+                </td>
+            </tr>`).join('');
+    }
+
+    async function guardarDepto(e) {
+        e.preventDefault();
+        const id = document.getElementById('depto-id').value;
+        const obj = { 
+            id: id ? parseInt(id) : 0, 
+            descripcion: document.getElementById('depto-desc').value, 
+            estado: document.getElementById('depto-estado').value === "true" 
+        };
+        const url = id ? `${BASE_URL}/Departamentos/${id}` : `${BASE_URL}/Departamentos`;
+        await fetch(url, { method: id ? 'PUT' : 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(obj) });
+        resetFormDepto(); 
+        cargarDeptos();
+    }
+
+    function editDepto(d) { 
+        document.getElementById('depto-id').value = d.id; 
+        document.getElementById('depto-desc').value = d.descripcion; 
+        document.getElementById('depto-estado').value = d.estado.toString(); 
+        document.getElementById('btn-depto').innerText = "Actualizar"; 
+        document.getElementById('btn-cancel-depto').classList.remove('d-none'); 
+    }
+
+    function resetFormDepto() { 
+        document.getElementById('depto-id').value = ""; 
+        document.getElementById('depto-desc').value = ""; 
+        document.getElementById('depto-estado').value = "true"; 
+        document.getElementById('btn-depto').innerText = "Guardar"; 
+        document.getElementById('btn-cancel-depto').classList.add('d-none'); 
+    }
+
+    async function cargarTipos() {
+        const res = await fetch(`${BASE_URL}/TiposActivos`);
+        const data = await res.json();
+        document.getElementById('tabla-tipos').innerHTML = data.map(t => `
+            <tr>
+                <td>${t.id}</td>
+                <td>${t.descripcion}</td>
+                <td class="text-success fw-bold">${t.cuentaContableCompra}</td>
+                <td class="text-danger fw-bold">${t.cuentaContableDepreciacion}</td>
+                <td>${t.vidaUtilMeses} meses</td>
+                <td>
+                    <button class="btn btn-warning btn-sm" onclick='editTipo(${JSON.stringify(t)})'><i class="fa-solid fa-pen"></i></button>
+                    <button class="btn btn-danger btn-sm" onclick="eliminar('TiposActivos', ${t.id}, cargarTipos)"><i class="fa-solid fa-trash"></i></button>
+                </td>
+            </tr>`).join('');
+    }
+
+    async function guardarTipo(e) {
+        e.preventDefault();
+        const id = document.getElementById('tipo-id').value;
+        const obj = { 
+            id: id ? parseInt(id) : 0, 
+            descripcion: document.getElementById('tipo-desc').value, 
+            cuentaContableCompra: document.getElementById('tipo-cta-compra').value, 
+            cuentaContableDepreciacion: document.getElementById('tipo-cta-dep').value, 
+            vidaUtilMeses: parseInt(document.getElementById('tipo-vida-util').value) || 48,
+            estado: true 
+        };
+        const url = id ? `${BASE_URL}/TiposActivos/${id}` : `${BASE_URL}/TiposActivos`;
+        await fetch(url, { method: id?'PUT':'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(obj) });
+        resetFormTipo(); 
+        cargarTipos();
+    }
+
+    function editTipo(t) { 
+        document.getElementById('tipo-id').value = t.id; 
+        document.getElementById('tipo-desc').value = t.descripcion; 
+        document.getElementById('tipo-cta-compra').value = t.cuentaContableCompra; 
+        document.getElementById('tipo-cta-dep').value = t.cuentaContableDepreciacion; 
+        document.getElementById('tipo-vida-util').value = t.vidaUtilMeses; 
+        document.getElementById('btn-tipo').innerText = "Actualizar"; 
+        document.getElementById('btn-cancel-tipo').classList.remove('d-none'); 
+    }
+
+    function resetFormTipo() { 
+        document.getElementById('tipo-id').value = ""; 
+        document.getElementById('tipo-desc').value = ""; 
+        document.getElementById('tipo-cta-compra').value = ""; 
+        document.getElementById('tipo-cta-dep').value = ""; 
+        document.getElementById('tipo-vida-util').value = "48"; 
+        document.getElementById('btn-tipo').innerText = "Guardar"; 
+        document.getElementById('btn-cancel-tipo').classList.add('d-none'); 
+    }
+
+    async function cargarEmpleados() {
+        const res = await fetch(`${BASE_URL}/Empleados`);
+        const data = await res.json();
+        document.getElementById('tabla-empleados').innerHTML = data.map(e => `
+            <tr>
+                <td>${e.id}</td>
+                <td>${e.nombre}</td>
+                <td>${e.cedula}</td>
+                <td>${e.departamento?.descripcion || 'N/A'}</td>
+                <td><span class="badge ${e.estado?'bg-success':'bg-danger'}">${e.estado?'Activo':'Inactivo'}</span></td>
+                <td>
+                    <button class="btn btn-warning btn-sm" onclick='editEmp(${JSON.stringify(e)})'><i class="fa-solid fa-pen"></i></button>
+                    <button class="btn btn-danger btn-sm" onclick="eliminar('Empleados', ${e.id}, cargarEmpleados)"><i class="fa-solid fa-trash"></i></button>
+                </td>
+            </tr>`).join('');
+    }
+
+    async function guardarEmpleado(e) {
+        e.preventDefault();
+        const cedula = document.getElementById('emp-cedula').value;
+        const tipoPersona = document.getElementById('emp-tipo').value;
+
+        if (tipoPersona === "Jurídica" || tipoPersona === "Juridica") {
+            if (!validaRNCJS(cedula)) {
+                alert("El RNC debe tener 9 dígitos numéricos.");
+                return;
+            }
+        } else {
+            if(!validaCedulaJS(cedula)) {
+                alert("La cédula ingresada no es válida según el algoritmo.");
+                return;
+            }
+        }
+
+        const id = document.getElementById('emp-id').value;
+        const obj = { 
+            id: id ? parseInt(id) : 0, 
+            nombre: document.getElementById('emp-nombre').value, 
+            cedula: cedula, 
+            departamentoId: parseInt(document.getElementById('emp-depto').value), 
+            tipoPersona: document.getElementById('emp-tipo').value, 
+            fechaIngreso: document.getElementById('emp-fecha').value, 
+            estado: document.getElementById('emp-estado').value === "true" 
+        };
+        const url = id ? `${BASE_URL}/Empleados/${id}` : `${BASE_URL}/Empleados`;
+        const res = await fetch(url, { method: id?'PUT':'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(obj) });
+        
+        if(!res.ok) { 
+            const err = await res.json(); 
+            alert(err.mensaje || "Error en el servidor"); 
+            return; 
+        }
+        
+        resetFormEmp(); 
+        cargarEmpleados();
+    }
+
+    function editEmp(e) { 
+        document.getElementById('emp-id').value = e.id; 
+        document.getElementById('emp-nombre').value = e.nombre; 
+        document.getElementById('emp-cedula').value = e.cedula; 
+        document.getElementById('emp-depto').value = e.departamentoId; 
+        document.getElementById('emp-tipo').value = e.tipoPersona; 
+        document.getElementById('emp-estado').value = e.estado.toString(); 
+        document.getElementById('emp-fecha').value = e.fechaIngreso.split('T')[0]; 
+        document.getElementById('btn-emp').innerText = "Actualizar"; 
+        document.getElementById('btn-cancel-emp').classList.remove('d-none'); 
+    }
+
+    function resetFormEmp() { 
+        document.getElementById('emp-id').value = ""; 
+        document.getElementById('emp-nombre').value = ""; 
+        document.getElementById('emp-cedula').value = ""; 
+        document.getElementById('emp-tipo').value = "Fisica"; 
+        document.getElementById('emp-estado').value = "true"; 
+        document.getElementById('emp-fecha').value = new Date().toISOString().split('T')[0]; 
+        document.getElementById('btn-emp').innerText = "Guardar Empleado"; 
+        document.getElementById('btn-cancel-emp').classList.add('d-none'); 
+    }
+
+    async function cargarActivos() {
+        const res = await fetch(`${BASE_URL}/ActivosFijos`);
+        const data = await res.json();
+        document.getElementById('tabla-activos').innerHTML = data.map(a => `
+            <tr>
+                <td>${a.id}</td>
+                <td>
+                    <strong>${a.descripcion}</strong><br>
+                    <small class="text-muted">${a.tipoActivo?.descripcion || 'N/A'} - ${a.departamento?.descripcion || 'N/A'}</small>
+                </td>
+                <td>RD$ ${a.valorCompra.toLocaleString()}</td>
+                <td class="text-danger">RD$ ${a.depreciacionAcumulada.toLocaleString()}</td>
+                <td>
+                    <button class="btn btn-warning btn-sm" onclick='editAct(${JSON.stringify(a)})'><i class="fa-solid fa-pen"></i></button>
+                    <button class="btn btn-danger btn-sm" onclick="eliminar('ActivosFijos', ${a.id}, cargarActivos)"><i class="fa-solid fa-trash"></i></button>
+                </td>
+            </tr>`).join('');
+    }
+
+    async function guardarActivo(e) {
+        e.preventDefault();
+        const id = document.getElementById('act-id').value;
+        const obj = { 
+            id: id ? parseInt(id) : 0, 
+            descripcion: document.getElementById('act-desc').value, 
+            departamentoId: parseInt(document.getElementById('act-depto').value), 
+            tipoActivoId: parseInt(document.getElementById('act-tipo').value), 
+            valorCompra: parseFloat(document.getElementById('act-valor').value), 
+            fechaRegistro: document.getElementById('act-fecha').value, 
+            depreciacionAcumulada: 0 
+        };
+        const url = id ? `${BASE_URL}/ActivosFijos/${id}` : `${BASE_URL}/ActivosFijos`;
+        await fetch(url, { method: id?'PUT':'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(obj) });
+        resetFormAct(); 
+        cargarActivos();
+    }
+
+    function editAct(a) { 
+        document.getElementById('act-id').value = a.id; 
+        document.getElementById('act-desc').value = a.descripcion; 
+        document.getElementById('act-depto').value = a.departamentoId; 
+        document.getElementById('act-tipo').value = a.tipoActivoId; 
+        document.getElementById('act-valor').value = a.valorCompra; 
+        document.getElementById('act-fecha').value = a.fechaRegistro.split('T')[0]; 
+        document.getElementById('btn-act').innerText = "Actualizar"; 
+        document.getElementById('btn-cancel-act').classList.remove('d-none'); 
+    }
+
+    function resetFormAct() { 
+        document.getElementById('act-id').value = ""; 
+        document.getElementById('act-desc').value = ""; 
+        document.getElementById('act-valor').value = ""; 
+        document.getElementById('act-fecha').value = new Date().toISOString().split('T')[0]; 
+        document.getElementById('btn-act').innerText = "Registrar Activo"; 
+        document.getElementById('btn-cancel-act').classList.add('d-none'); 
+    }
+
+    async function cargarActivosEnCalculo() {
+        const res = await fetch(`${BASE_URL}/ActivosFijos`);
+        const data = await res.json();
+        let html = '<option value="0">-- Todos los activos --</option>';
+        data.forEach(a => html += `<option value="${a.id}">${a.descripcion} (ID: ${a.id})</option>`);
+        document.getElementById('dep-activo-id').innerHTML = html;
+    }
+
+    async function cargarCalculos() {
+        const res = await fetch(`${BASE_URL}/CalculosDepreciacion`);
+        const data = await res.json();
+        document.getElementById('tabla-calculos').innerHTML = data.map(c => `
+            <tr>
+                <td><strong>${c.mesProceso}/${c.añoProceso}</strong></td>
+                <td>${c.activoFijo?.descripcion || 'N/A'}</td>
+                <td class="text-primary">RD$ ${c.montoDepreciado.toLocaleString()}</td>
+                <td class="text-danger">RD$ ${c.depreciacionAcumulada.toLocaleString()}</td>
+            </tr>`).join('');
+    }
+
+    async function ejecutarDepreciacion(e) {
+        e.preventDefault();
+        const anio = document.getElementById('dep-año').value;
+        const mes = document.getElementById('dep-mes').value;
+        const activoId = document.getElementById('dep-activo-id').value;
+        const todoElAnio = document.getElementById('dep-todo-anio').checked;
+
+        const confirmMsg = todoElAnio
+            ? `¿Desea procesar la depreciación de TODO el año ${anio} (12 meses)?`
+            : `¿Desea procesar la depreciación para el periodo ${mes}/${anio}?`;
+        if(!confirm(confirmMsg)) return;
+
+        const url = todoElAnio
+            ? `${BASE_URL}/CalculosDepreciacion/procesarAnio?año=${anio}&activoId=${activoId}`
+            : `${BASE_URL}/CalculosDepreciacion/procesar?año=${anio}&mes=${mes}&activoId=${activoId}`;
+
+        try {
+            const res = await fetch(url, { method: 'POST' });
+            const data = await res.json();
+
+            if (res.ok) {
+                let msg = data.mensaje;
+                if (data.omitidos && data.omitidos.length > 0) {
+                    msg += "\n\nOmitidos (" + data.omitidos.length + "):\n" +
+                        data.omitidos.map(o => `- ${o.activo}: ${o.motivo}`).join('\n');
+                }
+                if (data.detallePorMes) {
+                    const conOmitidos = data.detallePorMes.filter(m => m.omitidos && m.omitidos.length > 0);
+                    if (conOmitidos.length > 0) {
+                        msg += "\n\nDetalle de meses con omisiones:\n" + conOmitidos.map(m =>
+                            `Mes ${m.mes}: ` + m.omitidos.map(o => `${o.activo} (${o.motivo})`).join(', ')
+                        ).join('\n');
+                    }
+                }
+                alert(msg);
+                cargarCalculos(); 
+            } else {
+                let msg = (data.mensaje || "Error en el proceso de depreciación");
+                if (data.omitidos && data.omitidos.length > 0) {
+                    msg += "\n\nDetalle:\n" +
+                        data.omitidos.map(o => `- ${o.activo}: ${o.motivo}`).join('\n');
+                }
+                alert(msg);
+            }
+        } catch (err) {
+            alert("No se pudo conectar con el servidor.");
+        }
+    }
+
+    async function cargarDeptosSelect(id) { 
+        const res = await fetch(`${BASE_URL}/Departamentos`); 
+        const data = await res.json(); 
+        document.getElementById(id).innerHTML = data.filter(d=>d.estado).map(d=>`<option value="${d.id}">${d.descripcion}</option>`).join(''); 
+    }
+    
+    async function cargarTiposSelect(id) { 
+        const res = await fetch(`${BASE_URL}/TiposActivos`); 
+        const data = await res.json(); 
+        document.getElementById(id).innerHTML = data.map(t=>`<option value="${t.id}">${t.descripcion}</option>`).join(''); 
+    }
+    
+    async function eliminar(entidad, id, callback) { 
+        if(confirm("¿Seguro que deseas eliminar este registro? La acción es irreversible.")) { 
+            await fetch(`${BASE_URL}/${entidad}/${id}`, {method:'DELETE'}); 
+            callback(); 
+        } 
+    }
+
+    // Iniciar
+    switchTab('deptos', document.getElementById('tab-deptos'));
+</script>
+
+</body>
+</html>
