@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Activos Fijos</title>
+    <title>SGAF - Activos Fijos</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
@@ -171,6 +171,11 @@
                             </div>
                         </div>
 
+                        <label class="form-label">Responsable (opcional)</label>
+                        <select id="act-responsable" class="form-select mb-2">
+                            <option value="">-- Sin asignar --</option>
+                        </select>
+
                         <label class="form-label">Valor Compra (RD$)</label>
                         <input type="number" id="act-valor" class="form-control mb-2" step="0.01" required>
                         
@@ -184,7 +189,7 @@
             </div>
             <div class="col-md-8">
                 <table class="table shadow-sm table-hover">
-                    <thead class="table-dark"><tr><th>ID</th><th>Descripción</th><th>Valor Compra</th><th>Depreciación Acum.</th><th>Acciones</th></tr></thead>
+                    <thead class="table-dark"><tr><th>ID</th><th>Descripción</th><th>Responsable</th><th>Valor Compra</th><th>Depreciación Acum.</th><th>Acciones</th></tr></thead>
                     <tbody id="tabla-activos"></tbody>
                 </table>
             </div>
@@ -263,6 +268,7 @@
         if(tabId === 'activos') { 
             cargarDeptosSelect('act-depto'); 
             cargarTiposSelect('act-tipo'); 
+            cargarEmpleadosSelect('act-responsable');
             cargarActivos(); 
             if(!document.getElementById('act-id').value) document.getElementById('act-fecha').value = new Date().toISOString().split('T')[0];
         }
@@ -482,6 +488,7 @@
                     <strong>${a.descripcion}</strong><br>
                     <small class="text-muted">${a.tipoActivo?.descripcion || 'N/A'} - ${a.departamento?.descripcion || 'N/A'}</small>
                 </td>
+                <td>${a.empleado?.nombre || '<span class="text-muted">Sin asignar</span>'}</td>
                 <td>RD$ ${a.valorCompra.toLocaleString()}</td>
                 <td class="text-danger">RD$ ${a.depreciacionAcumulada.toLocaleString()}</td>
                 <td>
@@ -491,14 +498,24 @@
             </tr>`).join('');
     }
 
+    async function cargarEmpleadosSelect(id, valorActual) {
+        const res = await fetch(`${BASE_URL}/Empleados`);
+        const data = await res.json();
+        const opciones = data.filter(e => e.estado).map(e => `<option value="${e.id}">${e.nombre}</option>`).join('');
+        document.getElementById(id).innerHTML = '<option value="">-- Sin asignar --</option>' + opciones;
+        if (valorActual) document.getElementById(id).value = valorActual;
+    }
+
     async function guardarActivo(e) {
         e.preventDefault();
         const id = document.getElementById('act-id').value;
+        const responsable = document.getElementById('act-responsable').value;
         const obj = { 
             id: id ? parseInt(id) : 0, 
             descripcion: document.getElementById('act-desc').value, 
             departamentoId: parseInt(document.getElementById('act-depto').value), 
             tipoActivoId: parseInt(document.getElementById('act-tipo').value), 
+            empleadoId: responsable ? parseInt(responsable) : null,
             valorCompra: parseFloat(document.getElementById('act-valor').value), 
             fechaRegistro: document.getElementById('act-fecha').value, 
             depreciacionAcumulada: 0 
@@ -514,6 +531,7 @@
         document.getElementById('act-desc').value = a.descripcion; 
         document.getElementById('act-depto').value = a.departamentoId; 
         document.getElementById('act-tipo').value = a.tipoActivoId; 
+        cargarEmpleadosSelect('act-responsable', a.empleadoId);
         document.getElementById('act-valor').value = a.valorCompra; 
         document.getElementById('act-fecha').value = a.fechaRegistro.split('T')[0]; 
         document.getElementById('btn-act').innerText = "Actualizar"; 
@@ -523,6 +541,7 @@
     function resetFormAct() { 
         document.getElementById('act-id').value = ""; 
         document.getElementById('act-desc').value = ""; 
+        document.getElementById('act-responsable').value = ""; 
         document.getElementById('act-valor').value = ""; 
         document.getElementById('act-fecha').value = new Date().toISOString().split('T')[0]; 
         document.getElementById('btn-act').innerText = "Registrar Activo"; 
