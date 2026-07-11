@@ -60,6 +60,9 @@ public class ActivoFijo
     public int TipoActivoId { get; set; } // Tipo Activo (Relación) 
     public TipoActivo? TipoActivo { get; set; }
     
+    public int? EmpleadoId { get; set; } // Responsable/Custodio del activo (Relación, opcional)
+    public Empleado? Empleado { get; set; }
+    
     public DateTime FechaRegistro { get; set; } = DateTime.Now; // Fecha de Registro 
     public decimal ValorCompra { get; set; } // Valor Compra 
     public decimal DepreciacionAcumulada { get; set; } = 0m; // Depreciación Acumulada 

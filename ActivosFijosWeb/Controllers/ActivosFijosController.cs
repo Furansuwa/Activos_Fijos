@@ -21,6 +21,7 @@ public class ActivosFijosController : ControllerBase
         return await _context.ActivosFijos
                              .Include(a => a.Departamento)
                              .Include(a => a.TipoActivo)
+                             .Include(a => a.Empleado)
                              .ToListAsync();
     }
 
@@ -30,6 +31,7 @@ public class ActivosFijosController : ControllerBase
         var activo = await _context.ActivosFijos
                                    .Include(a => a.Departamento)
                                    .Include(a => a.TipoActivo)
+                                   .Include(a => a.Empleado)
                                    .FirstOrDefaultAsync(a => a.Id == id);
         if (activo == null) return NotFound();
         return activo;
